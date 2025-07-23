@@ -1,4 +1,5 @@
 import os
+from tqdm import tqdm
 from argparse import ArgumentParser
 
 import pyarrow as pa
@@ -60,7 +61,7 @@ if __name__ == "__main__":
     writer = pa.ipc.new_file(os.path.join(args.output_dir, shard_file_name), schema)
 
     try:
-        for doc in mapped_dataset:
+        for doc in tqdm(mapped_dataset):
             new_shard_idx = n_toks // args.tok_per_shard
             if new_shard_idx != current_shard_idx:
                 writer.close()

@@ -23,6 +23,7 @@ if __name__ == "__main__":
     parser.add_argument("--batch-size", type=int, default=1024)
     parser.add_argument("--num-examples", type=int, default=None)
     parser.add_argument("--output-dir", type=str)
+    parser.add_argument("--tok-per-shard", type=int, default=2**28)
 
     args = parser.parse_args()
 
@@ -50,14 +51,28 @@ if __name__ == "__main__":
     )
     print(f"Num. examples, entire dataset: {len(dataset):.2E}")
     print(f"{mapped_dataset=}")
-    print(f"{mapped_dataset[0]=}")
-
-    data_dir = "my/data/path"
-    shard_file_name = "my_file.arrow"
-    # "tokens" is an arbitrary header. You can use any header, and simply update config.col_name above to match
+    n_toks = 0
+    current_shard_idx = 0
     schema = pa.schema([pa.field("tokens", pa.uint32())])
-    with pa.ipc.new_file(
-        os.path.join(args.output_dir, shard_file_name), schema
-    ) as writer:
+
+    # Create first shard file
+    shard_file_name = f"data_{current_shard_idx}.arrow"
+    writer = pa.ipc.new_file(os.path.join(args.output_dir, shard_file_name), schema)
+
+    try:
         for doc in mapped_dataset:
+            new_shard_idx = n_toks // args.tok_per_shard
+            if new_shard_idx != current_shard_idx:
+                writer.close()
+                current_shard_idx = new_shard_idx
+                shard_file_name = f"data_{current_shard_idx}.arrow"
+                writer = pa.ipc.new_file(
+                    os.path.join(args.output_dir, shard_file_name), schema
+                )
+
             writer.write(pa.record_batch([doc["input_ids"]], schema=schema))
+            n_toks += len(doc["input_ids"])
+
+    finally:
+        if writer:
+            writer.close()

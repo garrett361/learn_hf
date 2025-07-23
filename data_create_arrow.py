@@ -66,6 +66,7 @@ if __name__ == "__main__":
                 writer.close()
                 current_shard_idx = new_shard_idx
                 shard_file_name = f"data_{current_shard_idx}.arrow"
+                print(f"Starting new file: {shard_file_name}")
                 writer = pa.ipc.new_file(
                     os.path.join(args.output_dir, shard_file_name), schema
                 )

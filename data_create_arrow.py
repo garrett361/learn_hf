@@ -52,11 +52,14 @@ if __name__ == "__main__":
     )
     print(f"Num. examples, entire dataset: {len(dataset):.2E}")
     print(f"{mapped_dataset=}")
+
+    # Write tokenized data to arrow files.
+    # https://github.com/foundation-model-stack/bamba/blob/main/training/data/README.md#1-write-your-data-into-pyarrow-format
+
     n_toks = 0
     current_shard_idx = 0
     schema = pa.schema([pa.field("tokens", pa.uint32())])
 
-    # Create first shard file
     shard_file_name = f"data_{current_shard_idx}.arrow"
     os.makedirs(args.output_dir, exist_ok=True)
     writer = pa.ipc.new_file(os.path.join(args.output_dir, shard_file_name), schema)
